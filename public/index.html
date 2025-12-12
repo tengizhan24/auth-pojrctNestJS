@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Главная страница</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Добро пожаловать!</h1>
+            <p>Система авторизации и выбора автомобилей</p>
+        </div>
+        
+        <div class="content">
+            <div id="auth-status">
+                <!-- Контент будет загружен динамически -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let currentEditCarId = null;
+
+        // Проверяем авторизацию при загрузке страницы
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthStatus();
+        });
+
+        async function checkAuthStatus() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showLoginView();
+                return;
+            }
+
+            try {
+                // Проверяем валидность токена через profile endpoint
+                const response = await fetch(`${API_URL}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    showAuthenticatedView(userData);
+                } else {
+                    localStorage.removeItem('token');
+                    showLoginView();
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                localStorage.removeItem('token');
+                showLoginView();
+            }
+        }
+
+        function showLoginView() {
+            document.getElementById('auth-status').innerHTML = `
+                <div class="user-info">
+                    <h2>Вы не авторизованы</h2>
+                    <p>Для доступа к системе выполните вход или зарегистрируйтесь</p>
+                    
+                    <div class="auth-buttons">
+                        <a href="login.html">Войти</a>
+                        <a href="register.html">Регистрация</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function showAuthenticatedView(userData) {
+            document.getElementById('auth-status').innerHTML = `
+                <div class="user-info">
+                    <div class="avatar">${userData.username.charAt(0).toUpperCase()}</div>
+                    <h2>Добро пожаловать, ${userData.username}!</h2>
+                    <p>Вы можете выбрать автомобиль из списка ниже</p>
+                    
+                    <!-- Секция выбора автомобиля -->
+                    <div class="car-section">
+                        <h3>Добавить автомобиль</h3>
+                        
+                        <div class="form-group">
+                            <label for="brand-select">Марка автомобиля:</label>
+                            <select id="brand-select" onchange="loadCarModels(this.value)">
+                                <option value="">-- Выберите марку --</option>
+                                <!-- Марки будут загружены здесь -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="model-select">Модель автомобиля:</label>
+                            <select id="model-select" disabled>
+                                <option value="">-- Сначала выберите марку --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="button-group">
+                            <button id="add-car-btn" onclick="addUserCar()" class="btn-primary">
+                                Добавить автомобиль
+                            </button>
+                            <button id="update-car-btn" onclick="updateUserCar()" class="btn-success" style="display: none;">
+                                Сохранить изменения
+                            </button>
+                            <button onclick="cancelEdit()" class="btn-secondary" style="display: none;">
+                                Отмена
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Секция списка автомобилей пользователя -->
+                    <div class="user-cars-section">
+                        <h3>Мои автомобили</h3>
+                        <div id="cars-list" class="cars-list">
+                            <div class="loading">Загрузка автомобилей...</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="logout()" class="logout-btn">
+                        Выйти из системы
+                    </button>
+                </div>
+            `;
+
+            // Загружаем данные после отображения интерфейса
+            await loadBrands();
+            await loadUserCars();
+        }
+
+        // ========== API Функции ==========
+
+        async function loadBrands() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/brands`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки марок автомобилей');
+                }
+
+                const brands = await response.json();
+                const brandSelect = document.getElementById('brand-select');
+
+                // Очищаем и добавляем марки
+                brandSelect.innerHTML = '<option value="">-- Выберите марку --</option>'; //Переменная brandSelect уже содержит ссылку на html 
+                brands.forEach(brand => {
+                    const option = document.createElement('option');
+                    option.value = brand.id;
+                    option.textContent = brand.name;
+                    brandSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading brands:', error); // Выводиться информация об ошибке 
+                showAlert('Ошибка загрузки марок автомобилей', 'error');// Отвечает за отображение всплывающего уведомления или сообщения пользователя на странице о том произошла ошибка при загрузке данных 
+            }
+        }
+
+        async function loadCarModels(brandId) { 
+            const modelSelect = document.getElementById('model-select'); // олучает ссылку на HTML элемент предназхначен для выбора моделей,по его идентификатору model-select
+
+            if (!brandId) {// Проверка наличия brandId(ранний выход)
+                modelSelect.disabled = true;
+                modelSelect.innerHTML = '<option value="">-- Сначала выберите марку --</option>';
+                return;
+            }
+
+            try { //Блок try..catch(попытка выполнения  с обработкой ошибок)
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/brands/${brandId}/models`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                // обработка ответа сервера
+                if (!response.ok) { //Проверка был ли запрос успешным =(Http-статус 200-299). Если нет (!response.ok) генерирует ошибку (Throw new Error)
+                    throw new Error('Ошибка загрузки моделей');
+                }
+
+                const models = await response.json();
+                //Выполнение списка моделей на странице: 
+                modelSelect.disabled = false; // Включает список моделей, делает его доступным для выбора. 
+                modelSelect.innerHTML = '<option value="">-- Выберите модель --</option>';// Очищяет список и добовляет опция по умользанию 
+
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    modelSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading models:', error);
+                showAlert('Ошибка загрузки моделей автомобилей', 'error');
+            }
+        }
+
+        async function loadUserCars() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/my`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка загрузки автомобилей');
+                }
+
+                const cars = await response.json();
+                const carsList = document.getElementById('cars-list');
+
+                if (!cars || cars.length === 0) {
+                    carsList.innerHTML = '<div class="no-cars">У вас пока нет сохраненных автомобилей</div>';
+                    return;
+                }
+
+                    carsList.innerHTML = cars.map(car => `
+        <div class="car-item">
+            <div class="car-details">
+                <div class="car-brand-model">${car.brand.name} ${car.model.name}</div>
+                <div class="car-date">
+                    Добавлено: ${new Date(car.created_at).toLocaleDateString('ru-RU')}
+                </div>
+            </div>
+            <div class="car-actions">
+                <button onclick="editCar(${car.id}, ${car.brand.id}, ${car.model.id})" 
+                        class="btn-edit">Редактировать</button>
+                <button onclick="deleteCar(${car.id})" 
+                        class="btn-delete">Удалить</button>
+            </div>
+        </div>
+    `).join('');
+            } catch (error) {
+                console.error('Error loading user cars:', error);
+                const carsList = document.getElementById('cars-list');
+                carsList.innerHTML = '<div class="no-cars">Ошибка загрузки автомобилей</div>';
+            }
+        }
+
+        async function addUserCar() {
+            const brandId = document.getElementById('brand-select').value;
+            const modelId = document.getElementById('model-select').value;
+
+            if (!brandId || !modelId) {
+                showAlert('Пожалуйста, выберите марку и модель автомобиля', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/my`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        brandId: parseInt(brandId),
+                        modelId: parseInt(modelId)
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Ошибка добавления автомобиля');
+                }
+
+                // Сбрасываем форму
+                resetForm();
+
+                // Обновляем список автомобилей
+                await loadUserCars();
+                showAlert('Автомобиль успешно добавлен!', 'success');
+            } catch (error) {
+                console.error('Error adding car:', error);
+                showAlert(error.message || 'Ошибка при добавлении автомобиля', 'error');
+            }
+        }
+
+        async function editCar(carId, brandId, modelId) {
+            currentEditCarId = carId;
+
+            // Устанавливаем выбранную марку
+            document.getElementById('brand-select').value = brandId;
+
+            // Загружаем модели для этой марки
+            await loadCarModels(brandId);
+
+            // Ждем загрузки моделей и устанавливаем выбранную модель
+            setTimeout(() => {
+                document.getElementById('model-select').value = modelId;
+            }, 300);
+
+            // Переключаем кнопки
+            document.getElementById('add-car-btn').style.display = 'none';
+            document.getElementById('update-car-btn').style.display = 'block';
+            document.querySelector('.btn-secondary').style.display = 'block';
+        }
+
+        async function updateUserCar() {
+            if (!currentEditCarId) return;
+
+            const brandId = document.getElementById('brand-select').value;
+            const modelId = document.getElementById('model-select').value;
+
+            if (!brandId || !modelId) {
+                showAlert('Пожалуйста, выберите марку и модель автомобиля', 'error');
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/my/${currentEditCarId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        brandId: parseInt(brandId),
+                        modelId: parseInt(modelId)
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Ошибка обновления автомобиля');
+                }
+
+                // Сбрасываем форму и возвращаем кнопки в исходное состояние
+                cancelEdit();
+
+                // Обновляем список автомобилей
+                await loadUserCars();
+                showAlert('Автомобиль успешно обновлен!', 'success');
+            } catch (error) {
+                console.error('Error updating car:', error);
+                showAlert(error.message || 'Ошибка при обновлении автомобиля', 'error');
+            }
+        }
+
+        function cancelEdit() {
+            currentEditCarId = null;
+            resetForm();
+
+            // Возвращаем кнопки в исходное состояние
+            document.getElementById('add-car-btn').style.display = 'block';
+            document.getElementById('update-car-btn').style.display = 'none';
+            document.querySelector('.btn-secondary').style.display = 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('brand-select').value = '';
+            document.getElementById('model-select').value = '';
+            document.getElementById('model-select').disabled = true;
+            document.getElementById('model-select').innerHTML = '<option value="">-- Сначала выберите марку --</option>';
+        }
+
+        async function deleteCar(carId) {
+            if (!confirm('Вы уверены, что хотите удалить этот автомобиль?')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/cars/my/${carId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Ошибка удаления автомобиля');
+                }
+
+                // Обновляем список автомобилей
+                await loadUserCars();
+                showAlert('Автомобиль успешно удален!', 'success');
+            } catch (error) {
+                console.error('Error deleting car:', error);
+                showAlert(error.message || 'Ошибка при удалении автомобиля', 'error');
+            }
+        }
+
+        function showAlert(message, type = 'success') {
+            // Удаляем предыдущие алерты
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Создаем новый алерт
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            document.body.appendChild(alertDiv);
+
+            // Удаляем алерт через 3 секунды
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
