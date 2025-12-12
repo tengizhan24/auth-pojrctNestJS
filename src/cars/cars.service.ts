@@ -112,7 +112,15 @@ export class CarsService {
       // Создаем марки если их нет
       const toyota = await this.createBrandIfNotExists('Toyota');
       const mercedes = await this.createBrandIfNotExists('Mercedes');
+      const subaru = await this.createBrandIfNotExists('Subaru')
 
+      await this.createModelsForBrand(subaru, [ 
+        'Forester', 
+        'Outback', 
+        'Crosstrek', 
+        'Ascent',
+        'Impreza'
+      ]);
       // Создаем модели Toyota
       await this.createModelsForBrand(toyota, [
         'Corolla',
@@ -130,6 +138,7 @@ export class CarsService {
         'GLC',
         'S-Class'
       ]);
+
 
       console.log('Car data seeded successfully!');
     } catch (error) {
