@@ -59,14 +59,6 @@ import { UserCar } from './cars/entities/user-car.entity';
     AuthModule,
     UsersModule,
     CarsModule
-
-
-
-
-
-
-
-
   ],
 })
 export class AppModule {}
