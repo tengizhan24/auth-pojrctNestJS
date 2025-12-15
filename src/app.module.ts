@@ -5,31 +5,28 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { CarsModule } from './cars/cars.module'; // Добавляем импорт
+import { CarsModule } from './cars/cars.module';
 import { User } from './users/user.entity';
-import { Brand } from './cars/entities/brand.entity'; // Добавляем импорт сущностей
+import { Brand } from './cars/entities/brand.entity';
 import { CarModel } from './cars/entities/car-model.entity';
 import { UserCar } from './cars/entities/user-car.entity';
 
-
-//Декоратор 
 @Module({
   imports: [
-    // Настройка модуля конфигурации 
     ConfigModule.forRoot({
-      isGlobal: true, // Делает ConfigService доступным во всем приложении
-      envFilePath: '.env', // Указывает путь к файлу .env
+      isGlobal: true,
+      envFilePath: '.env',
     }),
     
-    // Настройка статических файлов
+    // Настройка статических файлов - УБЕДИТЕСЬ ЧТО ЭТО ПРАВИЛЬНЫЙ ПУТЬ
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'), // Папка с HTML файлами
-      serveRoot: '/', // Корневой путь для статики
+      rootPath: join(__dirname, '..', 'public'), // Это правильный путь из dist
+      serveRoot: '/', // Файлы будут доступны по корневому URL
+      exclude: ['/api/*'], // Не обрабатывать API запросы
     }),
     
-    // Асинхронная настройка TypeORM
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule], // Импортируем ConfigModule
+      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         console.log('DB Configuration:', {
           host: configService.get('DB_HOST'),
@@ -40,22 +37,21 @@ import { UserCar } from './cars/entities/user-car.entity';
         
         return {
           type: 'postgres',
-          host: configService.get('DB_HOST'),
-          port: +configService.get('DB_PORT'),
-          username: configService.get('DB_USERNAME'),
-          password: configService.get('DB_PASSWORD'),
-          database: configService.get('DB_DATABASE'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}', User, Brand, CarModel, UserCar],
-          synchronize: true, // Автоматическое создание/обновление таблиц 
-          logging: true, // Включение логов SQL запросов
-          retryAttempts: 3, // Количество попыток подключения
-          retryDelay: 3000, // Задержка между попытками (мс)
+          host: configService.get('DB_HOST', 'localhost'),
+          port: +configService.get('DB_PORT', 5433),
+          username: configService.get('DB_USERNAME', 'postgres'),
+          password: configService.get('DB_PASSWORD', 'postgres123'),
+          database: configService.get('DB_DATABASE', 'auth_db'),
+          entities: [User, Brand, CarModel, UserCar],
+          synchronize: true,
+          logging: true,
+          retryAttempts: 3,
+          retryDelay: 3000,
         };
       },
       inject: [ConfigService],
     }),
     
-    // Импорт модулей приложения
     AuthModule,
     UsersModule,
     CarsModule

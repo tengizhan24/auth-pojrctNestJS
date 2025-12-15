@@ -5,176 +5,257 @@ import { Brand } from './entities/brand.entity';
 import { CarModel } from './entities/car-model.entity';
 import { UserCar } from './entities/user-car.entity';
 import { CreateUserCarDto } from './dto/create-user-car.dto';
+import { UpdateUserCarDto } from './dto/create-user-car.dto'; //./dto/update-user-car.dto
 
 @Injectable()
 export class CarsService {
   constructor(
     @InjectRepository(Brand)
     private brandRepository: Repository<Brand>,
-    
     @InjectRepository(CarModel)
     private modelRepository: Repository<CarModel>,
-    
     @InjectRepository(UserCar)
     private userCarRepository: Repository<UserCar>,
   ) {}
 
-  async findAllBrands(): Promise<Brand[]> {
-    return this.brandRepository.find({ order: { name: 'ASC' } });
-  }
-
-  async findModelsByBrand(brandId: number): Promise<CarModel[]> {
-    return this.modelRepository.find({ 
-      where: { brandId },
-      order: { name: 'ASC' }
+  // Получение всех марок
+  async getBrands() {
+    return this.brandRepository.find({
+      order: { name: 'ASC' },
     });
   }
 
-  async getUserCars(userId: number): Promise<UserCar[]> {
+  // Создание марки
+  async createBrand(name: string) {
+    const existingBrand = await this.brandRepository.findOne({
+      where: { name },
+    });
+    
+    if (existingBrand) {
+      throw new ConflictException('Марка с таким названием уже существует');
+    }
+    
+    const brand = this.brandRepository.create({ name });
+    return this.brandRepository.save(brand);
+  }
+
+  // Получение моделей по марке
+  async getModelsByBrand(brand_uuid: string) {
+    return this.modelRepository.find({
+      where: { brand_uuid },
+      order: { name: 'ASC' },
+    });
+  }
+
+  // Создание модели
+  async createModel(brand_uuid: string, name: string) {
+    const brand = await this.brandRepository.findOne({
+      where: { uuid: brand_uuid },
+    });
+    
+    if (!brand) {
+      throw new NotFoundException('Марка не найдена');
+    }
+    
+    const existingModel = await this.modelRepository.findOne({
+      where: { brand_uuid, name },
+    });
+    
+    if (existingModel) {
+      throw new ConflictException('Модель с таким названием уже существует у этой марки');
+    }
+    
+    const model = this.modelRepository.create({
+      name,
+      brand_uuid,
+    });
+    
+    return this.modelRepository.save(model);
+  }
+
+  // Получение автомобилей пользователя
+  async getUserCars(user_uuid: string) {
     return this.userCarRepository.find({
-      where: { userId },
+      where: { user_uuid },
       relations: ['brand', 'model'],
-      order: { created_at: 'DESC' }
+      order: { selectedAt: 'DESC' },
     });
   }
 
-  async addUserCar(userId: number, dto: CreateUserCarDto): Promise<UserCar> {
-    // Проверяем существование модели и бренда
+  // Создание автомобиля пользователя
+  async createUserCar(user_uuid: string, dto: CreateUserCarDto) {
+    // Проверяем существование модели
     const model = await this.modelRepository.findOne({
-      where: { id: dto.modelId, brandId: dto.brandId },
-      relations: ['brand']
+      where: { 
+        uuid: dto.model_uuid,
+        brand_uuid: dto.brand_uuid,
+      },
     });
 
     if (!model) {
-      throw new NotFoundException('Модель не найдена для выбранной марки');
+      throw new NotFoundException('Модель не найдена или не принадлежит указанной марке');
     }
 
-    // Проверяем, не добавлен ли уже такой автомобиль
-    const existing = await this.userCarRepository.findOne({
-      where: {
-        userId,
-        brandId: dto.brandId,
-        modelId: dto.modelId
-      }
+    // Проверяем, не добавлена ли уже эта модель пользователем
+    const existingUserCar = await this.userCarRepository.findOne({
+      where: { 
+        user_uuid,
+        model_uuid: dto.model_uuid,
+      },
     });
 
-    if (existing) {
-      throw new ConflictException('Этот автомобиль уже есть в вашем списке');
+    if (existingUserCar) {
+      throw new ConflictException('Эта модель уже добавлена в ваш гараж');
     }
 
+    // Создаем запись
     const userCar = this.userCarRepository.create({
-      userId,
-      brandId: dto.brandId,
-      modelId: dto.modelId
+      user_uuid,
+      brand_uuid: dto.brand_uuid,
+      model_uuid: dto.model_uuid,
     });
 
     return this.userCarRepository.save(userCar);
   }
 
-  async updateUserCar(id: number, userId: number, dto: CreateUserCarDto): Promise<UserCar> {
+  // Обновление автомобиля пользователя
+  async updateUserCar(uuid: string, user_uuid: string, dto: UpdateUserCarDto) {
     const userCar = await this.userCarRepository.findOne({
-      where: { id, userId }
+      where: { uuid, user_uuid },
     });
 
     if (!userCar) {
       throw new NotFoundException('Автомобиль не найден');
     }
 
-    // Проверяем существование модели и бренда
-    const model = await this.modelRepository.findOne({
-      where: { id: dto.modelId, brandId: dto.brandId }
-    });
+    // Если меняем модель, проверяем новую модель
+    if (dto.model_uuid) {
+      const model = await this.modelRepository.findOne({
+        where: { 
+          uuid: dto.model_uuid,
+          brand_uuid: dto.brand_uuid || userCar.brand_uuid,
+        },
+      });
 
-    if (!model) {
-      throw new NotFoundException('Модель не найдена для выбранной марки');
+      if (!model) {
+        throw new NotFoundException('Модель не найдена');
+      }
+
+      // Проверяем, не добавлена ли уже эта модель пользователем
+      const existingUserCar = await this.userCarRepository.findOne({
+        where: { 
+          user_uuid,
+          model_uuid: dto.model_uuid,
+          uuid: { $not: uuid } as any, // исключаем текущую запись
+        },
+      });
+
+      if (existingUserCar) {
+        throw new ConflictException('Эта модель уже добавлена в ваш гараж');
+      }
     }
 
-    userCar.brandId = dto.brandId;
-    userCar.modelId = dto.modelId;
-    userCar.updated_at = new Date();
+    // Обновляем поля
+    if (dto.brand_uuid) userCar.brand_uuid = dto.brand_uuid;
+    if (dto.model_uuid) userCar.model_uuid = dto.model_uuid;
+    userCar.updatedAt = new Date();
 
     return this.userCarRepository.save(userCar);
   }
 
-  async deleteUserCar(id: number, userId: number): Promise<void> {
-    const result = await this.userCarRepository.delete({ id, userId });
+  // Удаление автомобиля пользователя
+  async deleteUserCar(uuid: string, user_uuid: string) {
+    const result = await this.userCarRepository.delete({ uuid, user_uuid });
     
     if (result.affected === 0) {
       throw new NotFoundException('Автомобиль не найден');
     }
+    
+    return { message: 'Автомобиль удален' };
   }
 
-  // Метод для инициализации данных (можно вызвать при старте приложения)
-  async seedInitialData() {
-    console.log('Seeding initial car data...');
-    
-    try {
-      // Создаем марки если их нет
-      const toyota = await this.createBrandIfNotExists('Toyota');
-      const mercedes = await this.createBrandIfNotExists('Mercedes');
-      const subaru = await this.createBrandIfNotExists('Subaru')
-
-      await this.createModelsForBrand(subaru, [ 
-        'Forester', 
-        'Outback', 
-        'Crosstrek', 
-        'Ascent',
-        'Impreza'
-      ]);
-      // Создаем модели Toyota
-      await this.createModelsForBrand(toyota, [
-        'Corolla',
-        'Camry', 
-        'RAV4',
-        'Land Cruiser Prado',
-        'Hilux'
-      ]);
-
-      // Создаем модели Mercedes
-      await this.createModelsForBrand(mercedes, [
-        'C-Class',
-        'E-Class',
-        'G-Class',
-        'GLC',
-        'S-Class'
-      ]);
-
-
-      console.log('Car data seeded successfully!');
-    } catch (error) {
-      console.error('Error seeding car data:', error);
-    }
+  // Получение всех моделей
+  async getAllModels() {
+    return this.modelRepository.find({
+      relations: ['brand'],
+      order: { name: 'ASC' },
+    });
   }
 
-  private async createBrandIfNotExists(name: string): Promise<Brand> {
-    let brand = await this.brandRepository.findOne({ where: { name } });
-    
-    if (!brand) {
-      brand = this.brandRepository.create({ name });
-      brand = await this.brandRepository.save(brand);
-    }
-    
-    return brand;
+  // Поиск моделей по названию
+  async searchModels(query: string) {
+    return this.modelRepository
+      .createQueryBuilder('model')
+      .leftJoinAndSelect('model.brand', 'brand')
+      .where('model.name ILIKE :query', { query: `%${query}%` })
+      .orWhere('brand.name ILIKE :query', { query: `%${query}%` })
+      .orderBy('brand.name', 'ASC')
+      .addOrderBy('model.name', 'ASC')
+      .getMany();
   }
 
-  private async createModelsForBrand(brand: Brand, models: string[]): Promise<void> {
-    for (const modelName of models) {
-      const existingModel = await this.modelRepository.findOne({
-        where: { 
-          name: modelName,
-          brandId: brand.id
-        }
-      });
+  // Добавьте в конец класса CarsService
+async seedInitialData() {
+  try {
+    console.log('Seeding initial data...');
+    
+    // Проверяем, есть ли уже данные в таблице марок
+    const brandsCount = await this.brandRepository.count();
+    
+    if (brandsCount === 0) {
+      // Создаем начальные марки
+      const initialBrands = [
+        { name: 'Toyota' },
+        { name: 'BMW' },
+        { name: 'Mercedes-Benz' },
+        { name: 'Audi' },
+        { name: 'Ford' },
+        { name: 'Honda' },
+        { name: 'Volkswagen' },
+        { name: 'Hyundai' },
+      ];
 
-      if (!existingModel) {
-        const model = this.modelRepository.create({
-          name: modelName,
-          brand,
-          brandId: brand.id
-        });
-        
-        await this.modelRepository.save(model);
+      for (const brandData of initialBrands) {
+        await this.createBrand(brandData.name);
       }
+      console.log('Initial brands created');
     }
+
+    // Проверяем, есть ли модели
+    const modelsCount = await this.modelRepository.count();
+    
+    if (modelsCount === 0) {
+      // Получаем созданные марки
+      const brands = await this.brandRepository.find();
+      
+      const brandModels = {
+        'Toyota': ['Camry', 'Corolla', 'RAV4', 'Land Cruiser', 'Prius'],
+        'BMW': ['3 Series', '5 Series', '7 Series', 'X5', 'X3'],
+        'Mercedes-Benz': ['C-Class', 'E-Class', 'S-Class', 'GLE', 'GLC'],
+        'Audi': ['A4', 'A6', 'Q5', 'Q7', 'TT'],
+        'Ford': ['Focus', 'Fiesta', 'Mustang', 'Explorer', 'F-150'],
+        'Honda': ['Civic', 'Accord', 'CR-V', 'Pilot'],
+        'Volkswagen': ['Golf', 'Passat', 'Tiguan', 'Touareg'],
+        'Hyundai': ['Sonata', 'Elantra', 'Tucson', 'Santa Fe'],
+      };
+
+      for (const brand of brands) {
+        const models = brandModels[brand.name];
+        if (models) {
+          for (const modelName of models) {
+            await this.createModel(brand.uuid, modelName);
+          }
+        }
+      }
+      console.log('Initial models created');
+    }
+
+    console.log('Initial data seeding completed');
+  } catch (error) {
+    console.error('Error seeding initial data:', error);
   }
+}
+
+
+
 }

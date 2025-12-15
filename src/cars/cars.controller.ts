@@ -1,59 +1,55 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  UseGuards,
-  Request,
-  ParseIntPipe 
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, Query, UseGuards } from '@nestjs/common';
 import { CarsService } from './cars.service';
-import { CreateUserCarDto } from './dto/create-user-car.dto';
+import { CreateUserCarDto, UpdateUserCarDto } from './dto/create-user-car.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { GetUser } from '../auth/get-user.decorator'; //../auth/get-user.decorator
 
-@Controller('cars')// Декоратор Controller делает класс контроллером и задает базовый путь/cars 
-export class CarsController {  
-  constructor(private readonly carsService: CarsService) {} // Конструктор с Dependency Injection - NestJS автоматически внедряет экземпляр CarsService
+@Controller('cars')
+@UseGuards(JwtAuthGuard)
+export class CarsController {
+  constructor(private readonly carsService: CarsService) {}
 
-  @Get('brands') // Создает Get endpoint по пути 
-  async getBrands() {
-    return this.carsService.findAllBrands(); // Возвращает результат из сервиса findAllBrands()
+  @Get('brands')
+  getBrands() {
+    return this.carsService.getBrands();
   }
 
-  @Get('brands/:brandId/models') // Get enpoint с параметром пути 
-  async getModels(@Param('brandId', ParseIntPipe) brandId: number) { // Извлекает параметр brand из URL преоброзует его число 
-    return this.carsService.findModelsByBrand(brandId); // Возврощяет пеhtlftn brandId в сервис для получение моделей 
+  @Get('brands/:brand_uuid/models')
+  getModelsByBrand(@Param('brand_uuid') brand_uuid: string) {
+    return this.carsService.getModelsByBrand(brand_uuid);
   }
 
-  // Получение автомобиля пользователя(защищенный)
-  @UseGuards(JwtAuthGuard) //Защищаем маршрут JWT аутентификацией
-  @Get('my') // Get получет enpoint /cars/my 
-  async getMyCars(@Request() req) { // получаем обьект запроса 
-    return this.carsService.getUserCars(req.user.sub); //извлекаем ID пользователя из JWT токена (sub = subject)
+  @Get('my-cars')
+  getUserCars(@GetUser() user) {
+    return this.carsService.getUserCars(user.uuid);
   }
 
-  @UseGuards(JwtAuthGuard) // Защищаем маршрут POST endpoint 
-  @Post('my') // POST /cars/my
-  async addCar(@Request() req, @Body() dto: CreateUserCarDto) { // Извлекает тело запроса и валидирует его по DTO 
-    return this.carsService.addUserCar(req.user.sub, dto); // Передает ID пользователя и данные автомобиля в сервис 
+  @Post('my-cars')
+  createUserCar(@GetUser() user, @Body() dto: CreateUserCarDto) {
+    return this.carsService.createUserCar(user.uuid, dto);
   }
 
-  @UseGuards(JwtAuthGuard)// Защищаем маршрут 
-  @Put('my/:id') // PUT /cars/my/123
-  async updateCar(
-    @Request() req, 
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: CreateUserCarDto
+  @Put('my-cars/:uuid')
+  updateUserCar(
+    @Param('uuid') uuid: string,
+    @GetUser() user,
+    @Body() dto: UpdateUserCarDto,
   ) {
-    return this.carsService.updateUserCar(id, req.user.sub, dto); // Используем sub вместо id
+    return this.carsService.updateUserCar(uuid, user.uuid, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Delete('my/:id')
-  async deleteCar(@Request() req, @Param('id', ParseIntPipe) id: number) {
-    return this.carsService.deleteUserCar(id, req.user.sub); // Используем sub вместо id
+  @Delete('my-cars/:uuid')
+  deleteUserCar(@Param('uuid') uuid: string, @GetUser() user) {
+    return this.carsService.deleteUserCar(uuid, user.uuid);
+  }
+
+  @Get('models')
+  getAllModels() {
+    return this.carsService.getAllModels();
+  }
+
+  @Get('search')
+  searchModels(@Query('q') query: string) {
+    return this.carsService.searchModels(query);
   }
 }

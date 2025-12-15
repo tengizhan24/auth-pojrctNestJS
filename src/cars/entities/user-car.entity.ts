@@ -1,41 +1,45 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, UpdateDateColumn, BeforeInsert } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 import { User } from '../../users/user.entity';
 import { Brand } from './brand.entity';
 import { CarModel } from './car-model.entity';
 
 @Entity('user_cars')
 export class UserCar {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn('uuid', { default: () => 'uuid_generate_v7()' })
+  uuid: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_uuid' })
   user: User;
 
-  @Column({ name: 'user_id' })
-  userId: number;
+  @Column('uuid', { name: 'user_uuid' })
+  user_uuid: string;
 
   @ManyToOne(() => Brand, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'brand_id' })
+  @JoinColumn({ name: 'brand_uuid' })
   brand: Brand;
 
-  @Column({ name: 'brand_id' })
-  brandId: number;
+  @Column('uuid', { name: 'brand_uuid' })
+  brand_uuid: string;
 
   @ManyToOne(() => CarModel, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'model_id' })
+  @JoinColumn({ name: 'model_uuid' })
   model: CarModel;
 
-  @Column({ name: 'model_id' })
-  modelId: number;
+  @Column('uuid', { name: 'model_uuid' })
+  model_uuid: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  created_at: Date;
+  @CreateDateColumn({ name: 'selected_at' })
+  selectedAt: Date;
 
-  @Column({ 
-    type: 'timestamp', 
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
-  })
-  updated_at: Date;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @BeforeInsert()
+  generateUuid() {
+    if (!this.uuid) {
+      this.uuid = uuidv7();
+    }
+  }
 }

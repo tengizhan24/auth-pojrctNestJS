@@ -1,11 +1,17 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class CreateUserCarDto {
-  @IsInt()
-  @IsNotEmpty()
-  brandId: number;
+  @IsUUID('7', { message: 'Некорректный UUID марки автомобиля' })
+  brand_uuid: string;
 
-  @IsInt()
-  @IsNotEmpty()
-  modelId: number;
-} 
+  @IsUUID('7', { message: 'Некорректный UUID модели автомобиля' })
+  model_uuid: string;
+}
+
+export class UpdateUserCarDto {
+  @IsUUID('7', { message: 'Некорректный UUID марки автомобиля' })
+  brand_uuid?: string;
+
+  @IsUUID('7', { message: 'Некорректный UUID модели автомобиля' })
+  model_uuid?: string;
+}

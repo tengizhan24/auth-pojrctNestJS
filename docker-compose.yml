@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -7,9 +9,10 @@ services:
       POSTGRES_PASSWORD: postgres123
       POSTGRES_DB: auth_db
     ports:
-      - "5433:5432"  # ← Изменили внешний порт на 5433
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: unless-stopped
 
 volumes:
