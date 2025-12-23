@@ -12,7 +12,7 @@ import { UserCar } from '../cars/entities/user-car.entity'; //../../cars/entitie
 
 @Entity('users')
 export class User {
-  @PrimaryColumn('uuid', { default: () => 'uuid_generate_v7()' })
+  @PrimaryColumn('uuid')
   @IsUUID('7', { message: 'Некорректный UUID пользователя' })
   uuid: string;
 

@@ -29,7 +29,10 @@ export class AuthService {
 
 
   private generateToken(user: any) {// этот метод используется только внутри AuthService
-    const payload = { username: user.username, sub: user.id }; //Определяется полезная нагрузка токена - информация которая мы хотим хранить внутри JWT (логин и ID пользователя )
+    const payload = { 
+      sub: user.uuid, 
+      username: user.username 
+    }; //Определяется полезная нагрузка токена - информация которая мы хотим хранить внутри JWT (логин и ID пользователя )
     return {
       access_token: this.jwtService.sign(payload), //Использует JwtServicce Настроенный в AuthModule с секретным ключем и временемжизни 
       username: user.username, // токен доступа (access_token)

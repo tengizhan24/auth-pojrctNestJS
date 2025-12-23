@@ -17,14 +17,14 @@ import { UserCar } from './cars/entities/user-car.entity';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    
+
     // Настройка статических файлов - УБЕДИТЕСЬ ЧТО ЭТО ПРАВИЛЬНЫЙ ПУТЬ
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'), // Это правильный путь из dist
       serveRoot: '/', // Файлы будут доступны по корневому URL
       exclude: ['/api/*'], // Не обрабатывать API запросы
     }),
-    
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
@@ -34,7 +34,7 @@ import { UserCar } from './cars/entities/user-car.entity';
           database: configService.get('DB_DATABASE'),
           username: configService.get('DB_USERNAME'),
         });
-        
+
         return {
           type: 'postgres',
           host: configService.get('DB_HOST', 'localhost'),
@@ -44,6 +44,7 @@ import { UserCar } from './cars/entities/user-car.entity';
           database: configService.get('DB_DATABASE', 'auth_db'),
           entities: [User, Brand, CarModel, UserCar],
           synchronize: true,
+          dropSchema: false,
           logging: true,
           retryAttempts: 3,
           retryDelay: 3000,
@@ -51,10 +52,10 @@ import { UserCar } from './cars/entities/user-car.entity';
       },
       inject: [ConfigService],
     }),
-    
+
     AuthModule,
     UsersModule,
-    CarsModule
+    CarsModule,
   ],
 })
 export class AppModule {}

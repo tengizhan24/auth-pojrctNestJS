@@ -1,34 +1,39 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, UpdateDateColumn, BeforeInsert } from 'typeorm';
 import { v7 as uuidv7 } from 'uuid';
-import { User } from '../../users/user.entity';
-import { Brand } from './brand.entity';
-import { CarModel } from './car-model.entity';
 
 @Entity('user_cars')
 export class UserCar {
-  @PrimaryColumn('uuid', { default: () => 'uuid_generate_v7()' })
+  @PrimaryColumn('uuid')
   uuid: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_uuid' })
-  user: User;
-
   @Column('uuid', { name: 'user_uuid' })
-  user_uuid: string;
-
-  @ManyToOne(() => Brand, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'brand_uuid' })
-  brand: Brand;
+  user_uuid: string; 
 
   @Column('uuid', { name: 'brand_uuid' })
   brand_uuid: string;
 
-  @ManyToOne(() => CarModel, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'model_uuid' })
-  model: CarModel;
-
   @Column('uuid', { name: 'model_uuid' })
   model_uuid: string;
+
+  // ДОБАВЬТЕ ЭТО ПОЛЕ:
+  @Column('text', { 
+    name: 'reason',
+    nullable: true,
+    default: null 
+  })
+  reason: string;
+
+  @ManyToOne('User', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_uuid' })
+  user: any;
+
+  @ManyToOne('Brand', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'brand_uuid' })
+  brand: any;
+
+  @ManyToOne('CarModel', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'model_uuid' })
+  model: any;
 
   @CreateDateColumn({ name: 'selected_at' })
   selectedAt: Date;

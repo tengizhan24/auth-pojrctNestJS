@@ -1,28 +1,23 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, BeforeInsert } from 'typeorm';
 import { v7 as uuidv7 } from 'uuid';
-import { Brand } from './brand.entity';
-import { UserCar } from './user-car.entity';
 
 @Entity('car_models')
 export class CarModel {
-  @PrimaryColumn('uuid', { default: () => 'uuid_generate_v7()' })
+  @PrimaryColumn('uuid')
   uuid: string;
 
   @Column()
   name: string;
 
-  @ManyToOne(() => Brand, brand => brand.models, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'brand_uuid' })
-  brand: Brand;
-
-  @Column('uuid')
+  @Column('uuid', { name: 'brand_uuid' })
   brand_uuid: string;
+
+  @ManyToOne('Brand')
+  @JoinColumn({ name: 'brand_uuid' })
+  brand: any;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-
-  @OneToMany(() => UserCar, userCar => userCar.model) // Исправлено: userCar.carModel → userCar.model
-  userCars: UserCar[];
 
   @BeforeInsert()
   generateUuid() {

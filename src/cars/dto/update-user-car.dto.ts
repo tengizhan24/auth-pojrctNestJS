@@ -1,11 +1,14 @@
-// import { IsOptional, IsUUID } from 'class-validator';
+// update-user-car.dto.ts (если это отдельный файл)
+import { IsString, IsOptional, IsUUID } from 'class-validator';
 
-// export class UpdateUserCarDto {
-//   @IsOptional()
-//   @IsUUID('7', { message: 'Некорректный UUID марки автомобиля' })
-//   brand_uuid?: string;
+export class UpdateUserCarDto {
+  @IsUUID()
+  brand_uuid: string;
 
-//   @IsOptional()
-//   @IsUUID('7', { message: 'Некорректный UUID модели автомобиля' })
-//   model_uuid?: string;
-// }
+  @IsUUID()
+  model_uuid: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string; // <-- ДОБАВЬТЕ
+}

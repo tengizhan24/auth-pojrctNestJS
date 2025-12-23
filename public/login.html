@@ -15,12 +15,17 @@
             <div id="message" class="message error" style="display: none;"></div>
             
             <form id="loginForm">
-                <div class="form-group">
+                <div class="form-group ">
                     <input type="text" id="username" placeholder="Логин" required>
+                
                 </div>
                 
-                <div class="form-group">
-                    <input type="password" id="password" placeholder="Пароль" required>
+                <div class="form-group password-wrapper">
+                    <input type="password" id="password" placeholder="Пароль" required
+                    minlength="8"
+                    pattern="^(?=.*[0-9!@#$%^&*]).{8,}$"
+                    title="Пароль должен быть минимум 8 символов и содержать цифры или специальные символы !@#$%^&*">
+                    <button type="button" class="toggle-password" id="togglePassword" title="Показать пароль">👁️</button>
                 </div>
                 
                 <button type="submit" class="btn">Войти</button>
@@ -80,6 +85,24 @@
                 console.log('token')
             }
         });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('password'); 
+            const toggleButton = document.getElementById('togglePassword'); 
+
+            toggleButton.addEventListener('click', function(){
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text'; 
+                    this.textContent = '👁️‍🗨️'; 
+                    this.title = 'Скрыть пароль'; 
+                } else {
+                    passwordInput.type = 'password'; 
+                    this.textContent = '👁️', 
+                    this.title = 'Показать пароль'; 
+                }
+                passwordInput.focus(); 
+            })
+        })
     </script>
 </body>
 </html>
