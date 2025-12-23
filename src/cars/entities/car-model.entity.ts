@@ -1,10 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Brand } from './brand.entity';
+import { v7 as uuidv7 } from 'uuid';
 
 @Entity('car_models')
 export class CarModel {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn({ type: 'uuid' })
+  id: string = uuidv7();
 
   @Column()
   name: string;
@@ -14,7 +15,7 @@ export class CarModel {
   brand: Brand;
 
   @Column({ name: 'brand_id' })
-  brandId: number;
+  brandId: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

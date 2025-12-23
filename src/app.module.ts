@@ -11,22 +11,21 @@ import { Brand } from './cars/entities/brand.entity'; // Добавляем им
 import { CarModel } from './cars/entities/car-model.entity';
 import { UserCar } from './cars/entities/user-car.entity';
 
-
-//Декоратор 
+//Декоратор
 @Module({
   imports: [
-    // Настройка модуля конфигурации 
+    // Настройка модуля конфигурации
     ConfigModule.forRoot({
       isGlobal: true, // Делает ConfigService доступным во всем приложении
       envFilePath: '.env', // Указывает путь к файлу .env
     }),
-    
+
     // Настройка статических файлов
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'), // Папка с HTML файлами
       serveRoot: '/', // Корневой путь для статики
     }),
-    
+
     // Асинхронная настройка TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule], // Импортируем ConfigModule
@@ -37,7 +36,7 @@ import { UserCar } from './cars/entities/user-car.entity';
           database: configService.get('DB_DATABASE'),
           username: configService.get('DB_USERNAME'),
         });
-        
+
         return {
           type: 'postgres',
           host: configService.get('DB_HOST'),
@@ -45,20 +44,27 @@ import { UserCar } from './cars/entities/user-car.entity';
           username: configService.get('DB_USERNAME'),
           password: configService.get('DB_PASSWORD'),
           database: configService.get('DB_DATABASE'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}', User, Brand, CarModel, UserCar],
-          synchronize: true, // Автоматическое создание/обновление таблиц 
-          logging: true, // Включение логов SQL запросов
-          retryAttempts: 3, // Количество попыток подключения
-          retryDelay: 3000, // Задержка между попытками (мс)
+          entities: [
+            __dirname + '/**/*.entity{.ts,.js}',
+            User,
+            Brand,
+            CarModel,
+            UserCar,
+          ],
+          synchronize: true,
+          dropSchema: true,
+          logging: true,
+          retryAttempts: 3,
+          retryDelay: 3000,
         };
       },
       inject: [ConfigService],
     }),
-    
+
     // Импорт модулей приложения
     AuthModule,
     UsersModule,
-    CarsModule
+    CarsModule,
   ],
 })
 export class AppModule {}

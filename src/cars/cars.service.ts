@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Brand } from './entities/brand.entity';
@@ -11,10 +15,10 @@ export class CarsService {
   constructor(
     @InjectRepository(Brand)
     private brandRepository: Repository<Brand>,
-    
+
     @InjectRepository(CarModel)
     private modelRepository: Repository<CarModel>,
-    
+
     @InjectRepository(UserCar)
     private userCarRepository: Repository<UserCar>,
   ) {}
@@ -23,26 +27,26 @@ export class CarsService {
     return this.brandRepository.find({ order: { name: 'ASC' } });
   }
 
-  async findModelsByBrand(brandId: number): Promise<CarModel[]> {
-    return this.modelRepository.find({ 
+  async findModelsByBrand(brandId: string): Promise<CarModel[]> {
+    return this.modelRepository.find({
       where: { brandId },
-      order: { name: 'ASC' }
+      order: { name: 'ASC' },
     });
   }
 
-  async getUserCars(userId: number): Promise<UserCar[]> {
+  async getUserCars(userId: string): Promise<UserCar[]> {
     return this.userCarRepository.find({
       where: { userId },
       relations: ['brand', 'model'],
-      order: { created_at: 'DESC' }
+      order: { created_at: 'DESC' },
     });
   }
 
-  async addUserCar(userId: number, dto: CreateUserCarDto): Promise<UserCar> {
+  async addUserCar(userId: string, dto: CreateUserCarDto): Promise<UserCar> {
     // Проверяем существование модели и бренда
     const model = await this.modelRepository.findOne({
       where: { id: dto.modelId, brandId: dto.brandId },
-      relations: ['brand']
+      relations: ['brand'],
     });
 
     if (!model) {
@@ -54,8 +58,8 @@ export class CarsService {
       where: {
         userId,
         brandId: dto.brandId,
-        modelId: dto.modelId
-      }
+        modelId: dto.modelId,
+      },
     });
 
     if (existing) {
@@ -65,15 +69,19 @@ export class CarsService {
     const userCar = this.userCarRepository.create({
       userId,
       brandId: dto.brandId,
-      modelId: dto.modelId
+      modelId: dto.modelId,
     });
 
     return this.userCarRepository.save(userCar);
   }
 
-  async updateUserCar(id: number, userId: number, dto: CreateUserCarDto): Promise<UserCar> {
+  async updateUserCar(
+    id: string,
+    userId: string,
+    dto: CreateUserCarDto,
+  ): Promise<UserCar> {
     const userCar = await this.userCarRepository.findOne({
-      where: { id, userId }
+      where: { id, userId },
     });
 
     if (!userCar) {
@@ -82,7 +90,7 @@ export class CarsService {
 
     // Проверяем существование модели и бренда
     const model = await this.modelRepository.findOne({
-      where: { id: dto.modelId, brandId: dto.brandId }
+      where: { id: dto.modelId, brandId: dto.brandId },
     });
 
     if (!model) {
@@ -96,9 +104,9 @@ export class CarsService {
     return this.userCarRepository.save(userCar);
   }
 
-  async deleteUserCar(id: number, userId: number): Promise<void> {
+  async deleteUserCar(id: string, userId: string): Promise<void> {
     const result = await this.userCarRepository.delete({ id, userId });
-    
+
     if (result.affected === 0) {
       throw new NotFoundException('Автомобиль не найден');
     }
@@ -107,7 +115,7 @@ export class CarsService {
   // Метод для инициализации данных (можно вызвать при старте приложения)
   async seedInitialData() {
     console.log('Seeding initial car data...');
-    
+
     try {
       // Создаем марки если их нет
       const toyota = await this.createBrandIfNotExists('Toyota');
@@ -116,10 +124,10 @@ export class CarsService {
       // Создаем модели Toyota
       await this.createModelsForBrand(toyota, [
         'Corolla',
-        'Camry', 
+        'Camry',
         'RAV4',
         'Land Cruiser Prado',
-        'Hilux'
+        'Hilux',
       ]);
 
       // Создаем модели Mercedes
@@ -128,7 +136,7 @@ export class CarsService {
         'E-Class',
         'G-Class',
         'GLC',
-        'S-Class'
+        'S-Class',
       ]);
 
       console.log('Car data seeded successfully!');
@@ -139,31 +147,34 @@ export class CarsService {
 
   private async createBrandIfNotExists(name: string): Promise<Brand> {
     let brand = await this.brandRepository.findOne({ where: { name } });
-    
+
     if (!brand) {
       brand = this.brandRepository.create({ name });
       brand = await this.brandRepository.save(brand);
     }
-    
+
     return brand;
   }
 
-  private async createModelsForBrand(brand: Brand, models: string[]): Promise<void> {
+  private async createModelsForBrand(
+    brand: Brand,
+    models: string[],
+  ): Promise<void> {
     for (const modelName of models) {
       const existingModel = await this.modelRepository.findOne({
-        where: { 
+        where: {
           name: modelName,
-          brandId: brand.id
-        }
+          brandId: brand.id,
+        },
       });
 
       if (!existingModel) {
         const model = this.modelRepository.create({
           name: modelName,
           brand,
-          brandId: brand.id
+          brandId: brand.id,
         });
-        
+
         await this.modelRepository.save(model);
       }
     }

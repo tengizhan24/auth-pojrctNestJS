@@ -1,10 +1,11 @@
-import { IsString } from 'class-validator';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { IsString, isUUID } from 'class-validator';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { v7 as uuidv7 } from 'uuid';
 
 @Entity('brands')
 export class Brand {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn({ type: 'uuid' })
+  id: string = uuidv7();
 
   @Column({ unique: true })
   name: string;

@@ -1,41 +1,42 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/user.entity';
 import { Brand } from './brand.entity';
 import { CarModel } from './car-model.entity';
+import { v7 as uuidv7 } from 'uuid';
 
 @Entity('user_cars')
 export class UserCar {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn({ type: 'uuid' })
+  id: string = uuidv7();
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column({ name: 'user_id' })
-  userId: number;
+  userId: string;
 
   @ManyToOne(() => Brand, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'brand_id' })
   brand: Brand;
 
   @Column({ name: 'brand_id' })
-  brandId: number;
+  brandId: string;
 
   @ManyToOne(() => CarModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'model_id' })
   model: CarModel;
 
   @Column({ name: 'model_id' })
-  modelId: number;
+  modelId: string;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
-  @Column({ 
-    type: 'timestamp', 
+  @Column({
+    type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP'
+    onUpdate: 'CURRENT_TIMESTAMP',
   })
   updated_at: Date;
 }

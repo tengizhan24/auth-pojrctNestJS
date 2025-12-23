@@ -1,11 +1,9 @@
 import { IsInt, IsNotEmpty } from 'class-validator';
 
 export class CreateUserCarDto {
-  @IsInt()
   @IsNotEmpty()
-  brandId: number;
+  brandId: string;
 
-  @IsInt()
   @IsNotEmpty()
-  modelId: number;
-} 
+  modelId: string;
+}
