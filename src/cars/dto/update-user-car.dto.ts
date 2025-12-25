@@ -10,5 +10,5 @@ export class UpdateUserCarDto {
 
   @IsOptional()
   @IsString()
-  reason?: string; // <-- ДОБАВЬТЕ
+  reason?: string; 
 }

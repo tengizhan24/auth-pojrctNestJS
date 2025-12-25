@@ -21,8 +21,8 @@ export class CarModel {
 
   @BeforeInsert()
   generateUuid() {
-    if (!this.uuid) {
-      this.uuid = uuidv7();
+    if (!this.uuid) {  // если uuid не задан 
+      this.uuid = uuidv7(); //То автомотически генериирует uuid 7 версии 
     }
   }
 }

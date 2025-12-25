@@ -37,5 +37,5 @@ export class AuthService {
       access_token: this.jwtService.sign(payload), //Использует JwtServicce Настроенный в AuthModule с секретным ключем и временемжизни 
       username: user.username, // токен доступа (access_token)
     };
-  }
+  } 
 }

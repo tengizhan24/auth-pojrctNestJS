@@ -123,8 +123,7 @@
             await loadUserCars();
         }
 
-        // ========== API Функции ==========
-
+        // API Функции
         async function loadBrands() {
             try {
                 const token = localStorage.getItem('token');
@@ -138,7 +137,8 @@
                     throw new Error('Ошибка загрузки марок автомобилей');
                 }
 
-                const brands = await response.json();
+                const brands = await response.json();  // парсинг преобразует ответ в масив 
+
                 const brandSelect = document.getElementById('brand-select');
 
                 brandSelect.innerHTML = '<option value="">-- Выберите марку --</option>';
@@ -146,9 +146,9 @@
                     const option = document.createElement('option');
                     option.value = brand.uuid;
                     option.textContent = brand.name;
-                    brandSelect.appendChild(option);
+                    brandSelect.appendChild(option); // отоброжает имя = название марки
                 });
-            } catch (error) {
+            } catch (error) { // оброботчик ошибок
                 console.error('Error loading brands:', error);
                 showAlert('Ошибка загрузки марок автомобилей', 'error');
             }
@@ -158,34 +158,35 @@
             const modelSelect = document.getElementById('model-select');
 
             if (!brandUuid) {
-                modelSelect.disabled = true;
+                modelSelect.disabled = true; // отключает список моделей 
                 modelSelect.innerHTML = '<option value="">-- Сначала выберите марку --</option>';
                 return;
             }
 
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`${API_URL}/cars/brands/${brandUuid}/models`, {
+                const token = localStorage.getItem('token');// Извлекает JWT токен из локальной хранилища браузера
+                const response = await fetch(`${API_URL}/cars/brands/${brandUuid}/models`, { // Формирует URL
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-
+                // Проверка успешности ответа
                 if (!response.ok) {
                     throw new Error('Ошибка загрузки моделей');
                 }
 
-                const models = await response.json();
+                const models = await response.json(); // Парсинг JSON 
                 modelSelect.disabled = false;
                 modelSelect.innerHTML = '<option value="">-- Выберите модель --</option>';
 
+                //Динамическое создание опции 
                 models.forEach(model => {
                     const option = document.createElement('option');
-                    option.value = model.uuid;
-                    option.textContent = model.name;
-                    modelSelect.appendChild(option);
+                    option.value = model.uuid; // значение для отправки на сервер 
+                    option.textContent = model.name; // Отображаемый текст 
+                    modelSelect.appendChild(option); // Добвляем в select
                 });
-            } catch (error) {
+            } catch (error) { // Обработка ошибок (catch блок)
                 console.error('Error loading models:', error);
                 showAlert('Ошибка загрузки моделей автомобилей', 'error');
             }

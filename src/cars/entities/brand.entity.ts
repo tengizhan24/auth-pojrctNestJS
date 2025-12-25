@@ -6,7 +6,7 @@ export class Brand {
   @PrimaryColumn('uuid')
   uuid: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true }) // Поле должно быть уникальным в таблице
   name: string;
 
   @CreateDateColumn({ name: 'created_at' })

@@ -15,7 +15,6 @@ export class UserCar {
   @Column('uuid', { name: 'model_uuid' })
   model_uuid: string;
 
-  // ДОБАВЬТЕ ЭТО ПОЛЕ:
   @Column('text', { 
     name: 'reason',
     nullable: true,
@@ -23,24 +22,28 @@ export class UserCar {
   })
   reason: string;
 
+
+  // Тут связи с другими сущностями(relations)
   @ManyToOne('User', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_uuid' })
-  user: any;
+  user: any; // при удалении пользователя удаляются его машины 
 
   @ManyToOne('Brand', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'brand_uuid' })
-  brand: any;
+  brand: any; 
 
   @ManyToOne('CarModel', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'model_uuid' })
   model: any;
 
+  // Временные метки 
   @CreateDateColumn({ name: 'selected_at' })
-  selectedAt: Date;
+  selectedAt: Date; 
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
+  // Авто генерация 
   @BeforeInsert()
   generateUuid() {
     if (!this.uuid) {

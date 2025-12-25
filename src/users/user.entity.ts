@@ -1,12 +1,5 @@
 import { IsUUID } from 'class-validator';
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  CreateDateColumn,
-  OneToMany,
-  BeforeInsert,
-} from 'typeorm';
+import { Entity,Column,PrimaryColumn,CreateDateColumn,OneToMany,BeforeInsert} from 'typeorm';
 import { v7 as uuidv7 } from 'uuid';
 import { UserCar } from '../cars/entities/user-car.entity'; //../../cars/entities/user-car.entity
 
